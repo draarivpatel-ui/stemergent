@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>STEMergent Forecast and Heat Policy Planner</title>
+  <meta name="description" content="An offline forecast engine and heat safety policy tracker for activity planning. All fixture data is synthetic.">
+  <meta name="theme-color" content="#f4f1ea">
+  <meta property="og:title" content="STEMergent Forecast and Heat Policy Planner">
+  <meta property="og:description" content="An offline forecast engine and heat safety policy tracker for activity planning. All fixture data is synthetic.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231d2c3d'/%3E%3Ccircle cx='16' cy='13' r='5.5' fill='none' stroke='%23b4451c' stroke-width='2.5'/%3E%3Cpath d='M7 23h18' stroke='%2323657f' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="shell header-row">
+      <div class="brand">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+          <circle cx="16" cy="13" r="5.5" fill="none" stroke="currentColor" stroke-width="2.5" class="brand-mark-sun"></circle>
+          <path d="M7 23h18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" class="brand-mark-line"></path>
+        </svg>
+        <div>
+          <p class="brand-name">STEMergent</p>
+          <p class="brand-tag">Forecast and heat safety planning for busy seasons</p>
+        </div>
+      </div>
+      <nav aria-label="Modules">
+        <div class="tabs" role="tablist" aria-label="Modules">
+          <button class="tab" role="tab" id="tab-forecast" aria-controls="panel-forecast" aria-selected="true" type="button">Forecast Engine</button>
+          <button class="tab" role="tab" id="tab-policy" aria-controls="panel-policy" aria-selected="false" tabindex="-1" type="button">Heat Policy Tracker</button>
+          <button class="tab" role="tab" id="tab-departments" aria-controls="panel-departments" aria-selected="false" tabindex="-1" type="button">Departments</button>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" class="shell">
+    <p id="live-status" class="visually-hidden" role="status" aria-live="polite"></p>
+
+    <section id="panel-forecast" class="panel" role="tabpanel" aria-labelledby="tab-forecast" tabindex="0">
+      <h1 class="panel-title">Forecast Engine</h1>
+      <p class="panel-lede">
+        Point the engine at a labeled synthetic observation fixture and it produces an hourly
+        outlook, heat index and wind chill values, and a written discussion, all computed
+        locally with fixed formulas.
+      </p>
+
+      <form class="fixture-picker card" id="fixture-form" aria-label="Fixture selection">
+        <fieldset>
+          <legend>Choose a Synthetic Fixture</legend>
+          <div class="fixture-options">
+            <label class="radio-card">
+              <input type="radio" name="fixture" value="summer" checked>
+              <span class="radio-card-body">
+                <span class="radio-card-title">Synthetic Summer Heat Wave</span>
+                <span class="radio-card-desc">Thirty invented June hours climbing past 100 degrees with heavy Gulf style humidity.</span>
+                <span class="radio-card-note">Invented values for offline testing</span>
+              </span>
+            </label>
+            <label class="radio-card">
+              <input type="radio" name="fixture" value="winter">
+              <span class="radio-card-body">
+                <span class="radio-card-title">Synthetic Winter Cold Snap</span>
+                <span class="radio-card-desc">Thirty invented January hours in the teens and thirties with a steady north wind.</span>
+                <span class="radio-card-note">Invented values for offline testing</span>
+              </span>
+            </label>
+          </div>
+        </fieldset>
+        <div class="run-row">
+          <button class="btn" id="run-forecast" type="button">Run Forecast</button>
+          <p class="run-meta" id="forecast-meta" aria-live="polite">Ready when you are.</p>
+        </div>
+      </form>
+
+      <div id="forecast-results" hidden>
+        <div class="stat-grid">
+          <div class="stat-card">
+            <span class="stat-label">Peak Temperature</span>
+            <span class="stat-value" id="stat-peak-temp"></span>
+            <span class="stat-sub" id="stat-peak-temp-sub"></span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Peak Heat Index</span>
+            <span class="stat-value" id="stat-peak-hi"></span>
+            <span class="stat-sub" id="stat-peak-hi-sub"></span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Lowest Wind Chill</span>
+            <span class="stat-value" id="stat-min-wc"></span>
+            <span class="stat-sub" id="stat-min-wc-sub"></span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Sky Cover</span>
+            <span class="stat-value" id="stat-sky"></span>
+            <span class="stat-sub" id="stat-sky-sub"></span>
+          </div>
+        </div>
+
+        <section class="card section-card" aria-labelledby="ribbon-heading">
+          <h2 id="ribbon-heading" class="section-title">Twelve Hours At A Glance</h2>
+          <p class="section-note">Each cell colors one forecast hour by its temperature, from glacial blue to deep sienna.</p>
+          <div class="ribbon" id="heat-ribbon" aria-hidden="true"></div>
+          <div class="ribbon-scale" id="ribbon-scale" aria-hidden="true"></div>
+          <p class="visually-hidden" id="ribbon-note"></p>
+        </section>
+
+        <section class="card section-card" aria-labelledby="outlook-heading">
+          <h2 id="outlook-heading" class="section-title">Hourly Outlook</h2>
+          <div class="table-scroll">
+            <table id="forecast-table">
+              <caption id="forecast-caption"></caption>
+              <thead>
+                <tr>
+                  <th scope="col">Time</th>
+                  <th scope="col" class="num">Temperature</th>
+                  <th scope="col" class="num">Dew Point</th>
+                  <th scope="col" class="num">Wind</th>
+                  <th scope="col" class="num">Sky</th>
+                  <th scope="col" class="num">Humidity</th>
+                  <th scope="col" class="num">Heat Index</th>
+                  <th scope="col" class="num">Wind Chill</th>
+                </tr>
+              </thead>
+              <tbody id="forecast-table-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="bulletin" aria-labelledby="discussion-heading">
+          <h2 id="discussion-heading" class="section-title">Forecast Discussion</h2>
+          <p class="bulletin-headline" id="discussion-headline"></p>
+          <div class="bulletin-body" id="discussion-sentences"></div>
+          <p class="bulletin-method" id="forecast-method"></p>
+        </section>
+
+        <aside class="data-note" aria-labelledby="data-heading">
+          <h2 id="data-heading" class="section-title">About the Data</h2>
+          <p>
+            Every number here comes from the labeled synthetic fixture, never from a live weather
+            service. The heat index and wind chill follow National Weather Service formulas, and the
+            outlook uses a persistence model with a fixed diurnal adjustment, so results are
+            deterministic and fully offline. The README documents exactly where a live
+            api.weather.gov hourly feed would plug in.
+          </p>
+        </aside>
+      </div>
+    </section>
+
+    <section id="panel-policy" class="panel" role="tabpanel" aria-labelledby="tab-policy" tabindex="0" hidden>
+      <h1 class="panel-title">Heat Policy Tracker</h1>
+      <p class="panel-lede">
+        Log practice and event decisions against heat safety policy tiers across a season. The
+        tracker checks each decision, records escalations when conditions worsen, and exports a
+        summary for the season file.
+      </p>
+
+      <section class="card section-card" aria-labelledby="tiers-heading">
+        <h2 id="tiers-heading" class="section-title">Policy Tiers</h2>
+        <p class="section-note">Bands are modeled on National Weather Service heat risk categories. They are a planning aid, not official rule text.</p>
+        <ul class="tier-legend" id="tier-legend"></ul>
+      </section>
+
+      <div class="policy-grid">
+        <form class="card section-card" id="decision-form" aria-labelledby="log-heading">
+          <h2 id="log-heading" class="section-title">Log a Decision</h2>
+          <div class="form-grid">
+            <div class="field">
+              <label for="decision-date">Date</label>
+              <input type="date" id="decision-date" name="decision-date" required>
+            </div>
+            <div class="field">
+              <label for="decision-department">Department</label>
+              <select id="decision-department" name="decision-department"></select>
+            </div>
+            <div class="field span-2">
+              <label for="decision-activity">Activity</label>
+              <input type="text" id="decision-activity" name="decision-activity" placeholder="Two a day practice" required>
+            </div>
+            <div class="field">
+              <label for="decision-hi">Heat Index Reading (F)</label>
+              <input type="number" id="decision-hi" name="decision-hi" min="-80" max="200" step="0.1">
+            </div>
+            <div class="field field-check">
+              <label class="check-label">
+                <input type="checkbox" id="use-forecast-peak">
+                <span>Use the forecast peak instead</span>
+              </label>
+            </div>
+            <div class="field">
+              <label for="decision-type">Decision Taken</label>
+              <select id="decision-type" name="decision-type"></select>
+            </div>
+            <div class="field">
+              <label for="decision-notes">Notes</label>
+              <input type="text" id="decision-notes" name="decision-notes" placeholder="Optional context">
+            </div>
+          </div>
+          <button class="btn" type="submit">Log Decision</button>
+        </form>
+
+        <div class="card section-card verdict-panel" id="decision-feedback" aria-live="polite" aria-labelledby="feedback-heading">
+          <h2 id="feedback-heading" class="section-title">Latest Decision</h2>
+          <p class="empty-state" id="feedback-empty">Log a decision and its tier check will appear here.</p>
+          <div id="feedback-body" hidden></div>
+        </div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <span class="stat-label">Decisions Logged</span>
+          <span class="stat-value" id="stat-decisions">0</span>
+          <span class="stat-sub" id="stat-span">Across the season</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Flagged For Review</span>
+          <span class="stat-value" id="stat-flagged">0</span>
+          <span class="stat-sub">Decisions that fell short of the tier</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Escalations</span>
+          <span class="stat-value" id="stat-escalations">0</span>
+          <span class="stat-sub">Times conditions stepped up a tier</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Season File</span>
+          <div class="btn-row">
+            <button class="btn btn-ghost" id="export-csv" type="button">Export CSV</button>
+            <button class="btn btn-ghost" id="export-json" type="button">Export JSON</button>
+          </div>
+          <span class="stat-sub">Downloads straight from the browser</span>
+        </div>
+      </div>
+
+      <section class="card section-card" aria-labelledby="decision-log-heading">
+        <h2 id="decision-log-heading" class="section-title">Decision Log</h2>
+        <div class="table-scroll">
+          <table id="decision-table">
+            <caption>Every logged decision with its tier, verdict, and notes</caption>
+            <thead>
+              <tr>
+                <th scope="col">Date</th>
+                <th scope="col">Department</th>
+                <th scope="col">Activity</th>
+                <th scope="col" class="num">Heat Index</th>
+                <th scope="col">Tier</th>
+                <th scope="col">Decision</th>
+                <th scope="col">Status</th>
+                <th scope="col">Notes</th>
+              </tr>
+            </thead>
+            <tbody id="decision-table-body"></tbody>
+          </table>
+        </div>
+        <p class="empty-state" id="decision-empty">No decisions logged yet. The first entry will appear here.</p>
+      </section>
+
+      <section class="card section-card" aria-labelledby="escalation-heading">
+        <h2 id="escalation-heading" class="section-title">Escalation History</h2>
+        <ul class="escalation-list" id="escalation-list"></ul>
+      </section>
+
+      <div class="danger-row">
+        <button class="btn btn-danger" id="clear-data" type="button">Clear Stored Data</button>
+        <p class="danger-note">Decisions, departments, and calendars are saved in this browser only. Clearing removes them from local storage.</p>
+      </div>
+    </section>
+
+    <section id="panel-departments" class="panel" role="tabpanel" aria-labelledby="tab-departments" tabindex="0" hidden>
+      <h1 class="panel-title">Departments</h1>
+      <p class="panel-lede">
+        A small registry for the people and calendars around the season: which departments exist,
+        who holds which role, and when each season calendar runs. The module behind this panel is
+        fully isolated, with its own tests documented in DEPARTMENT.md.
+      </p>
+
+      <div class="dept-grid">
+        <section class="card section-card" aria-labelledby="dept-heading">
+          <h2 id="dept-heading" class="section-title">Departments</h2>
+          <form class="inline-form" id="department-form">
+            <div class="field">
+              <label for="department-name">Name</label>
+              <input type="text" id="department-name" required placeholder="Athletics">
+            </div>
+            <div class="field">
+              <label for="department-description">Description</label>
+              <input type="text" id="department-description" placeholder="Optional">
+            </div>
+            <button class="btn" type="submit">Add Department</button>
+          </form>
+          <p class="form-error" id="department-error" role="alert" hidden></p>
+          <ul class="dept-list" id="department-list"></ul>
+        </section>
+
+        <section class="card section-card" aria-labelledby="members-heading">
+          <h2 id="members-heading" class="section-title">Members and Roles</h2>
+          <form class="inline-form" id="member-form">
+            <div class="field">
+              <label for="member-name">Member Name</label>
+              <input type="text" id="member-name" required placeholder="Casey">
+            </div>
+            <div class="field">
+              <label for="member-department">Department</label>
+              <select id="member-department"></select>
+            </div>
+            <div class="field">
+              <label for="member-role">Role</label>
+              <select id="member-role"></select>
+            </div>
+            <button class="btn" type="submit">Add Member</button>
+          </form>
+          <p class="form-error" id="member-error" role="alert" hidden></p>
+          <ul class="dept-list" id="member-list"></ul>
+        </section>
+
+        <section class="card section-card" aria-labelledby="seasons-heading">
+          <h2 id="seasons-heading" class="section-title">Season Calendars</h2>
+          <form class="inline-form" id="season-form">
+            <div class="field">
+              <label for="season-name">Calendar Name</label>
+              <input type="text" id="season-name" required placeholder="Fall Season">
+            </div>
+            <div class="field">
+              <label for="season-department">Department</label>
+              <select id="season-department"></select>
+            </div>
+            <div class="field field-pair">
+              <div class="field">
+                <label for="season-start">Starts</label>
+                <input type="date" id="season-start" required>
+              </div>
+              <div class="field">
+                <label for="season-end">Ends</label>
+                <input type="date" id="season-end" required>
+              </div>
+            </div>
+            <div class="field">
+              <label for="season-blackouts">Blackout Dates</label>
+              <input type="text" id="season-blackouts" placeholder="2026-09-07, 2026-10-12">
+            </div>
+            <button class="btn" type="submit">Add Season</button>
+          </form>
+          <p class="form-error" id="season-error" role="alert" hidden></p>
+          <ul class="dept-list" id="season-list"></ul>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="shell footer-row">
+      <p>Built by Aariv Patel for STEMergent Hacks 2026. All fixture data is synthetic and no live weather service is called.</p>
+      <p class="footer-links">
+        <a href="README.md">README</a>
+        <a href="DEPARTMENT.md">Department Module</a>
+        <a href="NOTES.md">Build Notes</a>
+        <a href="LICENSE">MIT License</a>
+      </p>
+    </div>
+  </footer>
+
+  <noscript>
+    <p class="noscript-note">This tool needs JavaScript to compute forecasts and track decisions.</p>
+  </noscript>
+
+  <script src="js/forecast-engine.js"></script>
+  <script src="js/policy-tracker.js"></script>
+  <script src="js/department.js"></script>
+  <script src="data/fixtures.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

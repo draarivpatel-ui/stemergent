@@ -1,0 +1,11 @@
+{
+  "name": "stemergent",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Offline forecast engine and heat safety policy tracker. Static site, zero dependencies, synthetic fixtures.",
+  "author": "Aariv Patel",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test tests/"
+  }
+}
