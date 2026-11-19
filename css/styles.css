@@ -754,10 +754,6 @@ td.none {
   background: var(--heat);
 }
 
-.escalation-list li.calm::before {
-  background: var(--cold);
-}
-
 .danger-row {
   display: flex;
   align-items: center;
