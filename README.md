@@ -78,7 +78,7 @@ Tests use the Node.js built in test runner (Node 18 or newer), with zero depende
 network access:
 
 ```
-node --test tests/
+npm test
 ```
 
 Coverage: heat index vectors (including the published 96 F at 65 percent worked example), wind

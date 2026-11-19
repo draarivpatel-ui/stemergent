@@ -31,7 +31,7 @@ anywhere in the UI copy (verified by scan).
 
 ## Test Results (Real Counts)
 
-`node --test tests/` on Node v26.8.1, zero dependencies, zero network:
+`npm test` on Node v26.8.1, zero dependencies, zero network:
 
 | File | Tests |
 | --- | --- |
